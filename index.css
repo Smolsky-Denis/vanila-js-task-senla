@@ -1,9 +1,20 @@
-#root {
+.app {
     width: 400px;
 }
+
+.app > .preloader {
+    display: block;
+    margin: auto;
+}
+
 .logo {
     margin: 10px;
 }
+
+.preloader {
+    margin: auto;
+}
+
 .clock {
     padding: 10px;
     margin: 20px 10px;
@@ -11,7 +22,8 @@
     border-radius: 5px;
     font-weight: bold;
 }
-.infoBox {
+
+.lot {
     display: flex;
     justify-content: space-between;
     padding: 10px;
@@ -19,6 +31,7 @@
     border: solid 1px #a0a0a0;
     border-radius: 5px;
 }
+
 .type {
     font-weight: bold;
     font-size: 1.5em;

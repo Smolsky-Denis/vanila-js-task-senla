@@ -1,3 +1,24 @@
+let state = {
+    time: new Date(),
+    zone: 'PL',
+    // 0. пока lots заполни моковыми данными.данными
+    lots: [
+        {
+            type: 'Web developers',
+            description: 'Developers description',
+            count: '16',
+        }, {
+            type: 'Java',
+            description: 'Developers description',
+            count: '10',
+        }, {
+            type: 'Python',
+            description: 'Developers description',
+            count: '3',
+        },
+    ]
+};
+
 //4. Создать функцию render. Она чистит root элемент и вставляет newDom
 function render(component, root) {
     root.innerHTML = '';
@@ -123,46 +144,21 @@ function App({time, lots}) {
 
     // 2. Создать функцию App, которая принимает весь state, создает Header, app.append(Clock({ time: state.time }), app.append(Lots({ lots: state.lots }));
     // и return app
+    app.append(Header());
+    app.append(Clock({time}));
     if (lots === null) {
-        app.append(Header());
-        app.append(Clock({time}));
         app.append(Preloader())
     } else {
-        app.append(Header());
-        app.append(Clock({time}));
         app.append(Lots({lots}));
     }
     return app;
 }
 
 //6. реализовать setInterval. Он каждую секунду меняет time у state и пердает весь state в renderView
-function store() {
-    let state = {
-        time: new Date(),
-        zone: 'PL',
-        // 0. пока lots заполни моковыми данными.данными
-        lots: [
-            {
-                type: 'Web developers',
-                description: 'Developers description',
-                count: '16',
-            }, {
-                type: 'Java',
-                description: 'Developers description',
-                count: '10',
-            }, {
-                type: 'Python',
-                description: 'Developers description',
-                count: '3',
-            },
-        ]
-    };
+renderView(state);
 
-    setInterval(function () {
-        state.time = new Date();
+setInterval(function () {
+    state.time = new Date();
 
-        renderView(state);
-    }, 1000);
-}
-
-store();
+    renderView(state);
+}, 1000);

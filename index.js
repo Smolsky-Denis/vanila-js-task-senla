@@ -68,6 +68,15 @@ const stream = {
     }
 }
 
+function listener(updateLotObj) {
+    state.lots.forEach(lot => {
+        if (lot.id === updateLotObj.id) {
+            lot.count = updateLotObj.count;
+        }
+    })
+    renderView(state);
+}
+
 //4. Создать функцию render. Она чистит root элемент и вставляет newDom
 function render(component, root) {
     root.innerHTML = '';
@@ -210,14 +219,7 @@ api.get('/lots')
         // Он принимает обьект  - меняешь count в state на тот,
         // который принял и вызываешь renderView
         result.forEach(lot => {
-            stream.subscribe(`count-${lot.id}`, (updateLotObj) => {
-                state.lots.forEach(lot => {
-                    if (lot.id === updateLotObj.id) {
-                        lot.count = updateLotObj.count;
-                    }
-                })
-                renderView(state);
-            })
+            stream.subscribe(`count-${lot.id}`, listener)
         });
         state.lots = result;
         renderView(state);

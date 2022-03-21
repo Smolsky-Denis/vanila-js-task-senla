@@ -76,12 +76,30 @@ function listener(updateLotObj) {
     })
     renderView(state);
 }
+//3.  в функции sync проверить, что если у принятых нод id, className и другие аттрибуты не совпадают - произвести синхронизацию.
+function sync(virtualDom, realDomRoot) {
+    const virtualDomElements = virtualDom.childNodes;
+    const realDomRootElements = realDomRoot.childNodes;
+    for(let i = 0; i < realDomRootElements.length; i++){
+        if (virtualDomElements[i].isEqualNode(realDomRootElements[i])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 //4. Создать функцию render. Она чистит root элемент и вставляет newDom
-function render(component, root) {
-    root.innerHTML = '';
-
-    root.append(component);
+function render(virtualDom, realDomRoot) {
+    const virtualDomRoot = document.createElement(realDomRoot.tagName);
+// На данном этапе ноды virtualDom && realDomRoot должны быть одинаковой структуры. Учесть, что id в realDomRoot может меняться.
+    virtualDomRoot.id = realDomRoot.id;
+    // В функции render  (render(virtualDom, realDomRoot) создать дополнительную обертку над virtualDom.
+    virtualDomRoot.append(virtualDom);
+// 2. после вызвать функцию sync() с параметрами нового значения и realDomRoot.
+    if (sync(virtualDomRoot, realDomRoot)) {
+        realDomRoot.innerHTML = '';
+        realDomRoot.append(virtualDom);
+    }
 }
 
 // 3. Создать функцию renderView,
@@ -232,3 +250,4 @@ setInterval(function () {
     state.time = new Date();
     renderView(state);
 }, 1000);
+renderView(state);

@@ -79,95 +79,74 @@ function listener(updateLotObj) {
 
 //3.  в функции sync проверить, что если у принятых нод id, className и другие аттрибуты не совпадают - произвести синхронизацию.
 function sync(virtualElement, realElement) {
-    const isId = virtualElement.id === realElement.id;
-    const isClassName = virtualElement.className === realElement.className;
+// console.log("virtualElement ", virtualElement)
+// console.log("realElement ", realElement)
+//
+    if (virtualElement.attributes) {
+        Array.from(virtualElement.attributes).forEach((attr) => {
+            realElement[attr.name] = attr.value;
+        });
+    }
 
-    //TODO в isAttributes всегда false, тк сравниваются 2 объекта
-    const isAttributes = virtualElement.attributes === realElement.attributes;
-    console.log(isAttributes);
+    if (virtualElement.nodeValue !== realElement.nodeValue) {
+        realElement.nodeValue = virtualElement.nodeValue;
+    }
 
-    // TODO получается, что для сравнения атрибутов надо пилить функцию,
-    //  но как сравнить 2 объекта, чтобы не придумывать велосипел?
-    compareElementAttributes(virtualElement.attributes, realElement.attributes);
+    if (virtualElement.id !== realElement.id) {
+        realElement.id = virtualElement.id
+    }
 
-    const isNodeValue = virtualElement.nodeValue === realElement.nodeValue;
-    const isVirtualChild = virtualElement.hasChildNodes();
-    const isRealChild = realElement.hasChildNodes();
-    if (virtualElement.tagName === realElement.tagName) {
-        if (
-            isId
-            && isClassName
-            && isAttributes
-            && isNodeValue
-        ) {
-            if (isVirtualChild && isRealChild) {
-                const virtualChildList = virtualElement.childNodes;
-                const realChildList = realElement.childNodes;
-                const virtualChildLength = virtualChildList.length;
-                const realChildLength = virtualChildList.length;
+    const virtualChild = virtualElement.childNodes
+    const realChild = realElement.childNodes
+    console.log('virtualChild ', virtualChild)
+    console.log('realChild', realChild)
 
-                if (virtualChildLength === realChildLength) {
-                    for (let i = 0; i < virtualChildLength; i++) {
-                        sync(virtualChildList[i], realChildList[i]);
-                    }
-                } else if (virtualChildLength < realChildLength) {
-                    for (let i = 0; i < realChildLength; i++) {
-                        if (i > virtualChildLength) {
-                            sync(virtualChildList[i], realChildList[i]);
-                        } else {
-                            realElement.removeChild(realChildList[i]);
-                        }
-                    }
-                } else if (virtualChildLength > realChildLength) {
-                    for (let i = 0; i < virtualChildLength; i++) {
-                        if (i > realChildLength) {
-                            realElement.append(virtualChildList[i]);
-                        } else {
-                            sync(virtualChildList[i], realChildList[i]);
-                        }
-                    }
-                }
-            }
-        } else {
-            realElement.id = virtualElement.id;
-            realElement.className = virtualElement.className;
-            // TODO присваивание не сработает
-            //  realElement.attributes = virtualElement.attributes;
-            //  по этому начал делать фуннкцию
-            syncRealDomElementAttributes(realElement, virtualElement);
-            realElement.nodeValue = virtualElement.nodeValue;
-            sync(virtualElement, realElement);
+    for (let i = 0; i < virtualChild.length || i < realChild.length; i++) {
+        const virtual = virtualChild[i];
+        const real = realChild[i];
+
+        if (virtual === undefined && real !== undefined) {
+            realElement.remove(real)
         }
-    } else {
-        realElement.tagName = virtualElement.tagName;
-        sync(virtualElement, realElement);
+        if (virtual !== undefined && real !== undefined && virtual.tagName === real.tagName) {
+            sync(virtual, real);
+        }
+        if (virtual !== undefined && real !== undefined && virtual.tagName !== real.tagName) {
+            const newReal = buildRealFromVirtual(virtual);
+            sync(virtual, newReal);
+            realElement.appendChild(newReal)
+        }
+        if (virtual !== undefined && real === undefined) {
+            const newReal = buildRealFromVirtual(virtual);
+            console.log("newReal ", newReal)
+
+            sync(virtual, newReal);
+            realElement.appendChild(newReal)
+        }
     }
 }
 
-function syncRealDomElementAttributes (realElement, virtualElement) {
-    for (let key in realElement.attributes) {
-        debugger
-            realElement.removeAttribute(realElement.attributes[key]);
-        }
-    for (let key in virtualElement.attributes) {
-        realElement.setAttribute(key, virtualElement.attributes[key]);
+function buildRealFromVirtual(virtual) {
+    if (virtual.nodeType === Node.TEXT_NODE) {
+        return document.createTextNode('');
     }
-    return realElement
-}
-
-function compareElementAttributes(virtualAttributes, realAttributes) {
-    //TODO ???
+    return document.createElement(virtual.tagName);
 }
 
 //4. Создать функцию render. Она чистит root элемент и вставляет newDom
 function render(virtualDom, realDomRoot) {
+
     const virtualDomRoot = document.createElement(realDomRoot.tagName);
-// На данном этапе ноды virtualDom && realDomRoot должны быть одинаковой структуры. Учесть, что id в realDomRoot может меняться.
+
     virtualDomRoot.id = realDomRoot.id;
-    // В функции render  (render(virtualDom, realDomRoot) создать дополнительную обертку над virtualDom.
+
     virtualDomRoot.append(virtualDom);
-// 2. после вызвать функцию sync() с параметрами нового значения и realDomRoot.
-    sync(virtualDomRoot, realDomRoot)
+
+    // console.log("virtualDom ", virtualDom);
+    // console.log("realDomRoot ", realDomRoot);
+    // console.log("virtualDomRoot ", virtualDomRoot)
+    //
+    sync(virtualDomRoot, realDomRoot);
 }
 
 // 3. Создать функцию renderView,
@@ -243,23 +222,25 @@ function Clock(state) {
     return clockElement;
 }
 
-function Lot(type, description, count) {
+function Lot(item) {
     const lot = document.createElement('div');
     lot.classList.add('lot');
+
+    lot.dataset.key = item.id;
 
     const container = document.createElement('div');
 
     const typeElement = document.createElement('div');
     typeElement.classList.add('type');
-    typeElement.innerHTML = type;
+    typeElement.innerHTML = item.type;
 
     const descriptionElement = document.createElement('div');
     descriptionElement.classList.add('description');
-    descriptionElement.innerHTML = description;
+    descriptionElement.innerHTML = item.description;
 
     const countElement = document.createElement('div');
     countElement.classList.add('count');
-    countElement.innerHTML = count;
+    countElement.innerHTML = item.count;
 
     container.append(typeElement);
     container.append(descriptionElement);
@@ -275,7 +256,7 @@ function Lots(state) {
     lotsElement.classList.add('lots');
 
     state.lots.forEach(item => {
-        lotsElement.append(Lot(item.type, item.description, item.count));
+        lotsElement.append(Lot(item));
     });
 
     return lotsElement;

@@ -79,9 +79,6 @@ function listener(updateLotObj) {
 
 //3.  в функции sync проверить, что если у принятых нод id, className и другие аттрибуты не совпадают - произвести синхронизацию.
 function sync(virtualElement, realElement) {
-// console.log("virtualElement ", virtualElement)
-// console.log("realElement ", realElement)
-//
     if (virtualElement.attributes) {
         Array.from(virtualElement.attributes).forEach((attr) => {
             realElement[attr.name] = attr.value;
@@ -93,13 +90,11 @@ function sync(virtualElement, realElement) {
     }
 
     if (virtualElement.id !== realElement.id) {
-        realElement.id = virtualElement.id
+        realElement.id = virtualElement.id;
     }
 
-    const virtualChild = virtualElement.childNodes
-    const realChild = realElement.childNodes
-    console.log('virtualChild ', virtualChild)
-    console.log('realChild', realChild)
+    const virtualChild = virtualElement.childNodes;
+    const realChild = realElement.childNodes;
 
     for (let i = 0; i < virtualChild.length || i < realChild.length; i++) {
         const virtual = virtualChild[i];
@@ -118,10 +113,8 @@ function sync(virtualElement, realElement) {
         }
         if (virtual !== undefined && real === undefined) {
             const newReal = buildRealFromVirtual(virtual);
-            console.log("newReal ", newReal)
-
             sync(virtual, newReal);
-            realElement.appendChild(newReal)
+            realElement.appendChild(newReal);
         }
     }
 }
@@ -135,17 +128,9 @@ function buildRealFromVirtual(virtual) {
 
 //4. Создать функцию render. Она чистит root элемент и вставляет newDom
 function render(virtualDom, realDomRoot) {
-
     const virtualDomRoot = document.createElement(realDomRoot.tagName);
-
     virtualDomRoot.id = realDomRoot.id;
-
     virtualDomRoot.append(virtualDom);
-
-    // console.log("virtualDom ", virtualDom);
-    // console.log("realDomRoot ", realDomRoot);
-    // console.log("virtualDomRoot ", virtualDomRoot)
-    //
     sync(virtualDomRoot, realDomRoot);
 }
 
@@ -157,7 +142,6 @@ function renderView(state) {
 
 function Header() {
     const header = document.createElement('img');
-
     header.classList.add('logo');
     header.src = './icons/senla.svg';
 

@@ -142,19 +142,27 @@ function renderView(state) {
 
 function Header() {
     const header = document.createElement('img');
-    header.classList.add('logo');
-    header.src = './icons/senla.svg';
 
-    return header;
+    return {
+        type: header,
+        props: {
+            className: 'header',
+            src: './icons/senla.svg',
+        },
+    }
 }
 
 // можешь добавить еще вот такое в Lots (вставим Loading...)
 function Preloader() {
     const preloader = document.createElement('img');
-    preloader.src = './icons/preloader.svg';
-    preloader.classList.add('preloader');
 
-    return preloader;
+    return {
+        type: preloader,
+        props: {
+            className: 'preloader',
+            src: './icons/preloader.svg',
+        },
+    };
 }
 
 function Clock(state) {
@@ -163,7 +171,6 @@ function Clock(state) {
         am: " AM",
     };
     const clockElement = document.createElement('div');
-    clockElement.classList.add('clock');
 
     function checkTime(i) {
         if (i < 10) {
@@ -201,68 +208,121 @@ function Clock(state) {
         timeFormat,
     } = getTime(state);
 
-    clockElement.innerHTML = hours + ":" + minutes + ":" + seconds + timeFormat;
+    const value = hours + ":" + minutes + ":" + seconds + timeFormat;
 
-    return clockElement;
+    return {
+        type: clockElement,
+        props: {
+            className: 'clock',
+            value,
+        }
+    };
 }
 
-function Lot(item) {
+function Lot(props) {
+    const {item} = props;
     const lot = document.createElement('div');
-    lot.classList.add('lot');
-
-    lot.dataset.key = item.id;
 
     const container = document.createElement('div');
 
     const typeElement = document.createElement('div');
-    typeElement.classList.add('type');
-    typeElement.innerHTML = item.type;
 
     const descriptionElement = document.createElement('div');
-    descriptionElement.classList.add('description');
-    descriptionElement.innerHTML = item.description;
 
     const countElement = document.createElement('div');
-    countElement.classList.add('count');
-    countElement.innerHTML = item.count;
 
-    container.append(typeElement);
-    container.append(descriptionElement);
-
-    lot.append(container);
-    lot.append(countElement);
-
-    return lot;
+    return {
+        type: lot,
+        props: {
+            className: 'lot',
+            dataset: {key: item.id},
+            children: [
+                {
+                    type: container,
+                    props: {
+                        children: [
+                            {
+                                type: typeElement,
+                                props: {
+                                    className: 'type',
+                                    value: item.type,
+                                }
+                            }, {
+                                type: descriptionElement,
+                                props: {
+                                    className: 'description',
+                                    value: item.description,
+                                }
+                            },
+                        ]
+                    }
+                }, {
+                    type: countElement,
+                    props: {
+                        className: 'count',
+                        value: item.count,
+                    }
+                }
+            ]
+        },
+    };
 }
 
 function Lots(state) {
     const lotsElement = document.createElement('div');
     lotsElement.classList.add('lots');
 
-    state.lots.forEach(item => {
-        lotsElement.append(Lot(item));
-    });
+    const children = state.lots.reduce((childrenArr, current) => {
+        const child = {
+            type: Lot,
+            props: {
+                item: current
+            }
+        }
+        return childrenArr.push(child);
+    }, []);
 
-    return lotsElement;
+    return {
+        type: lotsElement,
+        props: {
+            className: 'lots',
+            children
+        }
+    };
 }
 
 function App({time, lots}) {
     // 1.  Добавь в дом дополнительную обертку div class=app. Корень root, в нем app, а в app вся движуха.
     const app = document.createElement('div');
-    app.classList.add('app');
 
-    app.innerHTML = 'Hello, I am Arun';
+    const lotsOrPreloader =
+        lots
+        ? {
+            type: Lots,
+            props: {
+                lots
+            }
+        }
+        : {
+            type: Preloader
+        };
 
-    // 2. Создать функцию App, которая принимает весь state, создает Header, app.append(Clock({ time: state.time }), app.append(Lots({ lots: state.lots }));
-    // и return app
-    app.append(Header());
-    app.append(Clock({time}));
-    if (lots === null) {
-        app.append(Preloader())
-    } else {
-        app.append(Lots({lots}));
-    }
-    return app;
+    return {
+        type: app,
+        props: {
+            className: 'app',
+            children: [
+                {type: Header},
+                {
+                    type: Clock,
+                    props: {
+                        time
+                    }
+                },
+                lotsOrPreloader
+            ]
+        }
+    };
 }
 
 //api получает lots (в then), обновляет state и вызывает renderView, ps/ не забывай про catch у промиса.

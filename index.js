@@ -78,43 +78,67 @@ function listener(updateLotObj) {
 }
 
 //3.  в функции sync проверить, что если у принятых нод id, className и другие аттрибуты не совпадают - произвести синхронизацию.
-function sync(virtualElement, realElement) {
-    if (virtualElement.attributes) {
-        Array.from(virtualElement.attributes).forEach((attr) => {
-            realElement[attr.name] = attr.value;
+function sync(virtualNode, realNode) {
+    if (virtualNode.props) {
+        Object.entries(virtualNode.props).forEach(([name, value]) => {
+            if (name === 'children' && name === 'key') {
+                return;
+            }
+
+            if (realNode[name] !== value) {
+                realNode[name] = value;
+            }
         });
     }
 
-    if (virtualElement.nodeValue !== realElement.nodeValue) {
-        realElement.nodeValue = virtualElement.nodeValue;
+    if (virtualNode.key) {
+        realNode.dataset.key = virtualNode.key;
+    }
+    if (typeof virtualNode !== 'object' && virtualNode !== realNode.nodeValue) {
+        realNode.nodeValue = virtualNode;
     }
 
-    if (virtualElement.id !== realElement.id) {
-        realElement.id = virtualElement.id;
-    }
+    const virtualChildren = virtualNode.props
+        ? virtualNode.props.children || []
+        : [];
 
-    const virtualChild = virtualElement.childNodes;
-    const realChild = realElement.childNodes;
+    const realChildren = realNode.childNodes;
 
-    for (let i = 0; i < virtualChild.length || i < realChild.length; i++) {
-        const virtual = virtualChild[i];
-        const real = realChild[i];
+    for (
+        let i = 0;
+        i < virtualChildren.length || i < realChildren.length;
+        i++
+    ) {
+        const virtual = virtualChildren[i];
+        const real = realChildren[i];
 
         if (virtual === undefined && real !== undefined) {
-            realElement.remove(real)
+            realNode.remove(real);
         }
-        if (virtual !== undefined && real !== undefined && virtual.tagName === real.tagName) {
+
+        if (
+            virtual !== undefined &&
+            real !== undefined &&
+            (virtual.type || '') === (real.tagName || '').toLowerCase()
+        ) {
             sync(virtual, real);
         }
-        if (virtual !== undefined && real !== undefined && virtual.tagName !== real.tagName) {
+
+        if (
+            virtual !== undefined &&
+            real !== undefined &&
+            (virtual.type || '') !== (real.tagName || '').toLowerCase()
+        ) {
             const newReal = buildRealFromVirtual(virtual);
             sync(virtual, newReal);
-            realElement.appendChild(newReal)
+            realNode.replaceChild(newReal, real);
         }
+
         if (virtual !== undefined && real === undefined) {
             const newReal = buildRealFromVirtual(virtual);
             sync(virtual, newReal);
-            realElement.appendChild(newReal);
+
+            realNode.appendChild(newReal);
         }
     }
 }
@@ -126,11 +150,39 @@ function buildRealFromVirtual(virtual) {
     return document.createElement(virtual.tagName);
 }
 
-//4. Создать функцию render. Она чистит root элемент и вставляет newDom
+function evaluate(virtualNode) {
+    if (typeof virtualNode !== 'object') {
+        return virtualNode;
+    }
+
+    if (typeof virtualNode.type === 'function') {
+        return evaluate(virtualNode.type(virtualNode.props));
+    }
+
+    const props = virtualNode.props || {};
+
+    return {
+        ...virtualNode,
+        props: {
+            ...props,
+            children: Array.isArray(props.children)
+                ? props.children.map(evaluate)
+                : [evaluate(props.children)],
+        },
+    };
+}
+
 function render(virtualDom, realDomRoot) {
-    const virtualDomRoot = document.createElement(realDomRoot.tagName);
-    virtualDomRoot.id = realDomRoot.id;
-    virtualDomRoot.append(virtualDom);
+    const evaluateVirtualDom = evaluate(virtualDom); // выполняем children и заполняем ответами
+
+    const virtualDomRoot = {
+        type: realDomRoot.tagName.toLowerCase(), //договоренность работы в нижнем регистре
+        props: {
+            id: realDomRoot.id,
+            ...realDomRoot.attributes,
+            children: [evaluateVirtualDom],
+        },
+    };
     sync(virtualDomRoot, realDomRoot);
 }
 
@@ -141,23 +193,30 @@ function renderView(state) {
 }
 
 function Header() {
-    const header = document.createElement('img');
 
     return {
-        type: header,
+        type: 'header',
         props: {
             className: 'header',
-            src: './icons/senla.svg',
-        },
+            children: [{type: Logo}]
+        }
     }
 }
 
-// можешь добавить еще вот такое в Lots (вставим Loading...)
-function Preloader() {
-    const preloader = document.createElement('img');
+function Logo() {
 
     return {
-        type: preloader,
+        type: 'img',
+        props: {
+            src: './icons/senla.svg',
+        }
+    }
+}
+
+function Preloader() {
+
+    return {
+        type: 'img',
         props: {
             className: 'preloader',
             src: './icons/preloader.svg',
@@ -165,12 +224,11 @@ function Preloader() {
     };
 }
 
-function Clock(state) {
+function Clock({time}) {
     const timeFormats = {
         pm: " PM",
         am: " AM",
     };
-    const clockElement = document.createElement('div');
 
     function checkTime(i) {
         if (i < 10) {
@@ -186,8 +244,8 @@ function Clock(state) {
         return h;
     }
 
-    function getTime(state) {
-        const today = state.time;
+    function getTime(time) {
+        const today = time;
         const h = today.getHours();
         const m = today.getMinutes();
         const s = today.getSeconds();
@@ -206,12 +264,12 @@ function Clock(state) {
         minutes,
         seconds,
         timeFormat,
-    } = getTime(state);
+    } = getTime(time);
 
     const value = hours + ":" + minutes + ":" + seconds + timeFormat;
 
     return {
-        type: clockElement,
+        type: 'div',
         props: {
             className: 'clock',
             value,
@@ -219,48 +277,38 @@ function Clock(state) {
     };
 }
 
-function Lot(props) {
-    const {item} = props;
-    const lot = document.createElement('div');
-
-    const container = document.createElement('div');
-
-    const typeElement = document.createElement('div');
-
-    const descriptionElement = document.createElement('div');
-
-    const countElement = document.createElement('div');
+function Lot({lot}) {
 
     return {
-        type: lot,
+        type: 'article',
+        key: lot.id,
         props: {
             className: 'lot',
-            dataset: {key: item.id},
             children: [
                 {
-                    type: container,
+                    type: 'div',
                     props: {
                         children: [
                             {
-                                type: typeElement,
+                                type: 'div',
                                 props: {
                                     className: 'type',
-                                    value: item.type,
+                                    value: lot.type,
                                 }
                             }, {
-                                type: descriptionElement,
+                                type: 'div',
                                 props: {
                                     className: 'description',
-                                    value: item.description,
+                                    value: lot.description,
                                 }
                             },
                         ]
                     }
                 }, {
-                    type: countElement,
+                    type: 'div',
                     props: {
                         className: 'count',
-                        value: item.count,
+                        value: lot.count,
                     }
                 }
             ]
@@ -268,22 +316,24 @@ function Lot(props) {
     };
 }
 
-function Lots(state) {
-    const lotsElement = document.createElement('div');
-    lotsElement.classList.add('lots');
+function Lots({lots}) {
+    if (lots === null) {
+        return {
+            type: Preloader,
+            props: {},
+        };
+    }
 
-    const children = state.lots.reduce((childrenArr, current) => {
-        const child = {
+    const children = lots.map(lot => ({
             type: Lot,
             props: {
-                item: current
-            }
-        }
-        return childrenArr.push(child);
-    }, []);
+                lot
+            },
+        })
+    );
 
     return {
-        type: lotsElement,
+        type: 'div',
         props: {
             className: 'lots',
             children
@@ -292,34 +342,25 @@ function Lots(state) {
 }
 
 function App({time, lots}) {
-    // 1.  Добавь в дом дополнительную обертку div class=app. Корень root, в нем app, а в app вся движуха.
-    const app = document.createElement('div');
-
-    const lotsOrPreloader =
-        lots
-        ? {
-            type: Lots,
-            props: {
-                lots
-            }
-        }
-        : {
-            type: Preloader
-        };
 
     return {
-        type: app,
+        type: 'div',
         props: {
             className: 'app',
             children: [
-                {type: Header},
                 {
+                    type: Header
+                }, {
                     type: Clock,
                     props: {
                         time
                     }
-                },
-                lotsOrPreloader
+                }, {
+                    type: Lots,
+                    props: {
+                        lots
+                    }
+                }
             ]
         }
     };

@@ -229,7 +229,7 @@ function Preloader() {
 
 function Clock({time}) {
     const isDay = time.getHours() >= 7 && time.getHours() <= 21;
-
+debugger
 
     return {
         type: 'div',
@@ -240,15 +240,11 @@ function Clock({time}) {
                     type: 'span',
                     props: {
                         className: 'value',
-                        children: [time.toLocaleTimeString()],
+                        children: [
+                            `${time.toLocaleTimeString()} ${(isDay ? 'PM' : 'AM')}`,
+                        ],
                     },
-                },
-                {
-                    type: 'span',
-                    props: {
-                        className: isDay ? 'ico day' : 'ico night',
-                    },
-                },
+                }
             ],
         },
     }

@@ -24,12 +24,16 @@
 }
 
 .lot {
-    display: flex;
-    justify-content: space-between;
+
     padding: 10px;
     margin: 10px;
     border: solid 1px #a0a0a0;
     border-radius: 5px;
+}
+
+.lot div:first-child {
+    display: flex;
+    justify-content: space-between;
 }
 
 .type {

@@ -77,7 +77,6 @@ function listener(updateLotObj) {
     renderView(state);
 }
 
-//3.  в функции sync проверить, что если у принятых нод id, className и другие аттрибуты не совпадают - произвести синхронизацию.
 function sync(virtualNode, realNode) {
     if (virtualNode.props) {
         Object.entries(virtualNode.props).forEach(([name, value]) => {
@@ -94,7 +93,11 @@ function sync(virtualNode, realNode) {
     if (virtualNode.key) {
         realNode.dataset.key = virtualNode.key;
     }
-    if (typeof virtualNode !== 'object' && virtualNode !== realNode.nodeValue) {
+
+    if (
+        typeof virtualNode !== 'object' &&
+        virtualNode !== realNode.nodeValue
+    ) {
         realNode.nodeValue = virtualNode;
     }
 
@@ -111,6 +114,7 @@ function sync(virtualNode, realNode) {
     ) {
         const virtual = virtualChildren[i];
         const real = realChildren[i];
+
 
         if (virtual === undefined && real !== undefined) {
             realNode.remove(real);
@@ -129,13 +133,13 @@ function sync(virtualNode, realNode) {
             real !== undefined &&
             (virtual.type || '') !== (real.tagName || '').toLowerCase()
         ) {
-            const newReal = buildRealFromVirtual(virtual);
+            const newReal = createRealNodeByVirtual(virtual);
             sync(virtual, newReal);
             realNode.replaceChild(newReal, real);
         }
 
         if (virtual !== undefined && real === undefined) {
-            const newReal = buildRealFromVirtual(virtual);
+            const newReal = createRealNodeByVirtual(virtual);
             sync(virtual, newReal);
 
             realNode.appendChild(newReal);
@@ -143,11 +147,11 @@ function sync(virtualNode, realNode) {
     }
 }
 
-function buildRealFromVirtual(virtual) {
-    if (virtual.nodeType === Node.TEXT_NODE) {
+function createRealNodeByVirtual(virtual) {
+    if (typeof virtual !== 'object') {
         return document.createTextNode('');
     }
-    return document.createElement(virtual.tagName);
+    return document.createElement(virtual.type);
 }
 
 function evaluate(virtualNode) {
@@ -188,14 +192,13 @@ function render(virtualDom, realDomRoot) {
 
 // 3. Создать функцию renderView,
 function renderView(state) {
-    // 5. render(App({ state }), document.getElementById('root'));
     render(App(state), document.getElementById('root'));
 }
 
 function Header() {
 
     return {
-        type: 'header',
+        type: 'div',
         props: {
             className: 'header',
             children: [{type: Logo}]
@@ -225,56 +228,30 @@ function Preloader() {
 }
 
 function Clock({time}) {
-    const timeFormats = {
-        pm: " PM",
-        am: " AM",
-    };
+    const isDay = time.getHours() >= 7 && time.getHours() <= 21;
 
-    function checkTime(i) {
-        if (i < 10) {
-            return "0" + i;
-        }
-        return i;
-    }
-
-    function checkHours(h) {
-        if (h > 12) {
-            return h - 12;
-        }
-        return h;
-    }
-
-    function getTime(time) {
-        const today = time;
-        const h = today.getHours();
-        const m = today.getMinutes();
-        const s = today.getSeconds();
-        const timeFormat = h > 12 ? timeFormats.pm : timeFormats.am;
-
-        return {
-            hours: checkHours(h),
-            minutes: checkTime(m),
-            seconds: checkTime(s),
-            timeFormat,
-        }
-    }
-
-    const {
-        hours,
-        minutes,
-        seconds,
-        timeFormat,
-    } = getTime(time);
-
-    const value = hours + ":" + minutes + ":" + seconds + timeFormat;
 
     return {
         type: 'div',
         props: {
             className: 'clock',
-            value,
-        }
-    };
+            children: [
+                {
+                    type: 'span',
+                    props: {
+                        className: 'value',
+                        children: [time.toLocaleTimeString()],
+                    },
+                },
+                {
+                    type: 'span',
+                    props: {
+                        className: isDay ? 'ico day' : 'ico night',
+                    },
+                },
+            ],
+        },
+    }
 }
 
 function Lot({lot}) {
@@ -293,25 +270,26 @@ function Lot({lot}) {
                                 type: 'div',
                                 props: {
                                     className: 'type',
-                                    value: lot.type,
-                                }
-                            }, {
+                                    children: [lot.type],
+                                },
+                            },
+                            {
                                 type: 'div',
                                 props: {
-                                    className: 'description',
-                                    value: lot.description,
-                                }
+                                    children: [lot.count]
+                                },
                             },
-                        ]
-                    }
-                }, {
+
+                        ],
+                    },
+                },
+                {
                     type: 'div',
                     props: {
-                        className: 'count',
-                        value: lot.count,
-                    }
-                }
-            ]
+                        children: [lot.description],
+                    },
+                },
+            ],
         },
     };
 }
@@ -335,7 +313,6 @@ function Lots({lots}) {
     return {
         type: 'div',
         props: {
-            className: 'lots',
             children
         }
     };
@@ -350,12 +327,14 @@ function App({time, lots}) {
             children: [
                 {
                     type: Header
-                }, {
+                },
+                {
                     type: Clock,
                     props: {
                         time
                     }
-                }, {
+                },
+                {
                     type: Lots,
                     props: {
                         lots

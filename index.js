@@ -229,10 +229,10 @@ function Preloader() {
 }
 
 function Clock({time}) {
-    const isDay = time.getHours() >= 7 && time.getHours() <= 21;
+    const isFormatTime = time.getHours() >= 12 && time.getHours() !== 0;
     const children = [
         VDom.createElement('span', {}, [
-            `${time.toLocaleTimeString()} ${(isDay ? 'PM' : 'AM')}`,
+            `${time.toLocaleTimeString()} ${(isFormatTime ? 'PM' : 'AM')}`,
         ])
     ];
 

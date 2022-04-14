@@ -68,6 +68,24 @@ const stream = {
     }
 }
 
+const VDom = {
+    createElement: (type, config, ...children) => {
+        const props = config || {};
+        const key = config ? config.key || null : null;
+
+        if (children.length === 1) {
+            props.children = children[0];
+        } else {
+            props.children = children;
+        }
+        return {
+            type,
+            key,
+            props,
+        };
+    }
+}
+
 function listener(updateLotObj) {
     state.lots.forEach(lot => {
         if (lot.id === updateLotObj.id) {
@@ -196,149 +214,67 @@ function renderView(state) {
 }
 
 function Header() {
+    return VDom.createElement('div', {className: 'header'}, [
+        VDom.createElement(Logo, {})
 
-    return {
-        type: 'div',
-        props: {
-            className: 'header',
-            children: [{type: Logo}]
-        }
-    }
+    ]);
 }
 
 function Logo() {
-
-    return {
-        type: 'img',
-        props: {
-            src: './icons/senla.svg',
-        }
-    }
+    return VDom.createElement('img', {src: './icons/senla.svg'});
 }
 
 function Preloader() {
-
-    return {
-        type: 'img',
-        props: {
-            className: 'preloader',
-            src: './icons/preloader.svg',
-        },
-    };
+    return VDom.createElement('img', {className: 'preloader'});
 }
 
 function Clock({time}) {
     const isDay = time.getHours() >= 7 && time.getHours() <= 21;
-debugger
+    const children = [
+        VDom.createElement('span', {}, [
+            `${time.toLocaleTimeString()} ${(isDay ? 'PM' : 'AM')}`,
+        ])
+    ];
 
-    return {
-        type: 'div',
-        props: {
-            className: 'clock',
-            children: [
-                {
-                    type: 'span',
-                    props: {
-                        className: 'value',
-                        children: [
-                            `${time.toLocaleTimeString()} ${(isDay ? 'PM' : 'AM')}`,
-                        ],
-                    },
-                }
-            ],
-        },
-    }
+    return VDom.createElement('div', {className: 'clock'}, children);
 }
 
 function Lot({lot}) {
-
-    return {
-        type: 'article',
+    const children = [
+        VDom.createElement('div', {}, [
+            VDom.createElement('div', {className: 'type'}, [lot.type]),
+            VDom.createElement('div', {}, [lot.count]),
+        ]),
+    ];
+    const config = {
         key: lot.id,
-        props: {
-            className: 'lot',
-            children: [
-                {
-                    type: 'div',
-                    props: {
-                        children: [
-                            {
-                                type: 'div',
-                                props: {
-                                    className: 'type',
-                                    children: [lot.type],
-                                },
-                            },
-                            {
-                                type: 'div',
-                                props: {
-                                    children: [lot.count]
-                                },
-                            },
-
-                        ],
-                    },
-                },
-                {
-                    type: 'div',
-                    props: {
-                        children: [lot.description],
-                    },
-                },
-            ],
-        },
+        className: 'lot',
     };
+
+    return VDom.createElement('article', config, children);
 }
 
 function Lots({lots}) {
     if (lots === null) {
-        return {
-            type: Preloader,
-            props: {},
-        };
+        return VDom.createElement(Preloader, {});
     }
 
-    const children = lots.map(lot => ({
-            type: Lot,
-            props: {
-                lot
-            },
-        })
+    const children = lots.map(lot => {
+            return VDom.createElement(Lot, {lot});
+        }
     );
 
-    return {
-        type: 'div',
-        props: {
-            children
-        }
-    };
+    return VDom.createElement('div', {}, children);
 }
 
 function App({time, lots}) {
+    const children = [
+        VDom.createElement(Header, {}),
+        VDom.createElement(Clock, {time}),
+        VDom.createElement(Lots, {lots}),
+    ];
 
-    return {
-        type: 'div',
-        props: {
-            className: 'app',
-            children: [
-                {
-                    type: Header
-                },
-                {
-                    type: Clock,
-                    props: {
-                        time
-                    }
-                },
-                {
-                    type: Lots,
-                    props: {
-                        lots
-                    }
-                }
-            ]
-        }
-    };
+    return VDom.createElement('div', {className: 'app'}, children);
 }
 
 //api получает lots (в then), обновляет state и вызывает renderView, ps/ не забывай про catch у промиса.

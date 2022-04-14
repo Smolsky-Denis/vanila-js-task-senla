@@ -245,6 +245,7 @@ function Lot({lot}) {
             VDom.createElement('div', {className: 'type'}, [lot.type]),
             VDom.createElement('div', {}, [lot.count]),
         ]),
+        VDom.createElement('div', {}, [lot.description]),
     ];
     const config = {
         key: lot.id,
